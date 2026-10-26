@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0f1c">
+<title>Clicker Tycoon</title>
+<style>
+:root{--bg:#0a0f1c;--panel:#121a2e;--panel2:#1a2540;--line:#26345a;--gold:#f6c64f;--green:#3ddc97;--blue:#4da3ff;--text:#e8edf8;--mut:#8a97b5;--red:#ff6b6b}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:radial-gradient(circle at 20% 0,#14214a 0,var(--bg) 55%) fixed;color:var(--text);font:15px/1.4 "Trebuchet MS","Segoe UI",system-ui,sans-serif;min-height:100%}
+button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
+button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.top{position:sticky;top:0;z-index:5;background:rgba(10,15,28,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:calc(8px + env(safe-area-inset-top)) 14px 10px;display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center}
+.brand{font-weight:800;letter-spacing:.5px;color:var(--gold);font-size:.95rem}
+.tools{display:flex;gap:6px;grid-row:1;grid-column:2}
+.tools button{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:5px 9px}
+.money{grid-column:1/-1;font:700 clamp(2rem,8vw,3.2rem)/1.1 Georgia,serif;color:var(--gold);text-shadow:0 0 18px rgba(246,198,79,.35);font-variant-numeric:tabular-nums}
+.cps{color:var(--green);font-weight:700}
+.lvl{grid-column:1/-1;display:flex;gap:8px;align-items:center;color:var(--mut);font-size:.85rem}
+.bar{flex:1;height:8px;background:#0d1426;border-radius:8px;overflow:hidden;border:1px solid var(--line)}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--blue),var(--green));transition:width .3s}
+main{max-width:1050px;margin:0 auto;padding:12px;display:grid;gap:12px;grid-template-columns:1fr}
+@media(min-width:820px){main{grid-template-columns:340px 1fr;align-items:start}.click-panel{position:sticky;top:150px}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px}
+.click-panel{text-align:center}
+#coin{width:min(60vw,220px);aspect-ratio:1;border-radius:50%;border:6px solid #b98a1c;background:radial-gradient(circle at 35% 30%,#ffe9a0,var(--gold) 55%,#c48d1a);font-size:clamp(4rem,18vw,6.5rem);box-shadow:0 8px 0 #7d5a0e,0 0 40px rgba(246,198,79,.3);transition:transform .08s,box-shadow .08s;user-select:none;-webkit-user-select:none}
+#coin:active,#coin.hit{transform:translateY(6px) scale(.97);box-shadow:0 2px 0 #7d5a0e,0 0 55px rgba(246,198,79,.55)}
+#cpc{margin:16px 0 4px;font-weight:700;color:var(--blue)}
+.hint{color:var(--mut);font-size:.85rem;margin:0}
+nav{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:10px;scrollbar-width:thin}
+nav button{flex:none;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:7px 12px;white-space:nowrap}
+nav button.on{background:var(--blue);color:#06101f;font-weight:700;border-color:var(--blue)}
+.view{display:none;gap:8px;flex-direction:column}.view.on{display:flex}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.row button,.pill{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:6px 12px}
+.row button.on{border-color:var(--green);color:var(--green);font-weight:700}
+.card{display:grid;grid-template-columns:48px 1fr auto;gap:10px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:10px}
+.card.done{border-color:var(--gold)}
+.ic{font-size:1.9rem;text-align:center}
+.inf small{display:block;color:var(--mut)}
+.lv{color:var(--gold);font-weight:700;margin-left:4px}
+.buy{background:linear-gradient(#2fc588,#1f9a6a);border:0;border-radius:12px;padding:9px 12px;font-weight:700;color:#04140d;min-width:112px}
+.buy.gem{background:linear-gradient(#6bb8ff,#3a82d6);color:#04101f}
+.buy.gold{background:linear-gradient(#ffd96b,#d9a21f);color:#2a1d02}
+.buy:disabled{background:#2a3555;color:#7885a6;cursor:not-allowed}
+.flash{animation:flash .5s}
+@keyframes flash{0%{box-shadow:0 0 0 0 rgba(61,220,151,.9)}100%{box-shadow:0 0 0 16px rgba(61,220,151,0)}}
+#fx{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:20}
+.float{position:absolute;font-weight:800;color:var(--gold);text-shadow:0 2px 4px #000;animation:up .9s ease-out forwards;white-space:nowrap}
+@keyframes up{0%{opacity:1;transform:translate(-50%,0) scale(.8)}100%{opacity:0;transform:translate(-50%,-90px) scale(1.2)}}
+#toasts{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;flex-direction:column;gap:6px;z-index:30;width:min(92vw,420px)}
+.toast{background:#0d1426;border:1px solid var(--gold);border-radius:12px;padding:9px 14px;text-align:center;animation:pop .25s}
+@keyframes pop{from{opacity:0;transform:translateY(10px)}}
+#modal{position:fixed;inset:0;background:rgba(3,6,14,.75);display:none;align-items:center;justify-content:center;z-index:40;padding:16px}
+#modal.on{display:flex}
+.box{background:var(--panel);border:1px solid var(--gold);border-radius:18px;padding:18px;max-width:440px;width:100%;max-height:85vh;overflow:auto}
+.box h2{margin:0 0 8px;color:var(--gold)}.box p,.box li{color:var(--text)}
+.box .row{justify-content:flex-end;margin-top:12px}
+.stat{display:flex;justify-content:space-between;padding:8px 4px;border-bottom:1px solid var(--line)}
+.stat b{color:var(--green)}
+.big{font:700 1.6rem Georgia,serif;color:var(--gold)}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">💼 CLICKER TYCOON</div>
+  <div class="tools">
+    <button id="bSnd" aria-label="Activar o desactivar sonido">🔇</button>
+    <button id="bReset" aria-label="Reiniciar partida">🗑️</button>
+  </div>
+  <div class="money"><span id="coins">0</span> 🪙</div>
+  <div class="cps" id="cps">+0/s</div>
+  <div class="lvl"><span id="lvl">Nivel 1</span><div class="bar"><i id="lvlbar"></i></div><span id="gems">💎 0</span></div>
+</header>
+<main>
+  <section class="panel click-panel">
+    <button id="coin" aria-label="Ganar monedas">🪙</button>
+    <div id="cpc"></div>
+    <p class="hint">Toca la moneda, compra negocios y deja que trabajen por ti.</p>
+  </section>
+  <section class="panel">
+    <nav id="tabs" role="tablist"></nav>
+    <div id="views"></div>
+  </section>
+</main>
+<div id="fx"></div><div id="toasts"></div>
+<div id="modal"><div class="box" id="box"></div></div>
+
+<script>
+"use strict";
+const $=s=>document.querySelector(s), KEY="clickerTycoon_v1", R=1.15;
+const SUF=["","K","M","B","T","Qa","Qi","Sx","Sp","Oc","No","Dc"];
+function fmt(n){
+  if(!isFinite(n))return "∞"; if(n<0)n=0;
+  if(n<1000)return String(Math.round(n*10)/10);
+  let e=Math.floor(Math.log10(n)/3), v=n/Math.pow(1000,e);
+  if(v>=999.995){e++;v=n/Math.pow(1000,e)}
+  if(e>=SUF.length)return n.toExponential(2).replace("+","");
+  return v.toFixed(2)+SUF[e];
+}
+const fmtTime=s=>{s=Math.floor(s);const h=Math.floor(s/3600),m=Math.floor(s%3600/60);return (h?h+"h ":"")+m+"m "+(s%60)+"s"};
+
+/* ===== Datos ===== */
+const BIZ=[
+ {n:"Puesto de limonada",i:"🍋",c:15,p:0.5},
+ {n:"Tienda",i:"🏪",c:120,p:4},
+ {n:"Restaurante",i:"🍽️",c:1300,p:30},
+ {n:"Supermercado",i:"🛒",c:15000,p:200},
+ {n:"Fábrica",i:"🏭",c:180000,p:1400},
+ {n:"Empresa tecnológica",i:"💻",c:2.2e6,p:10000},
+ {n:"Banco",i:"🏦",c:30e6,p:75000},
+ {n:"Corporación internacional",i:"🌍",c:450e6,p:600000}];
+const CU=[
+ {n:"Dedo fuerte",i:"👆",c:10,r:1.15,a:1},
+ {n:"Guantes de negocios",i:"🧤",c:2500,r:1.25,a:25},
+ {n:"Manos de oro",i:"✋",c:500000,r:1.35,a:2000}];
+const PERM=[
+ {id:"p1",n:"Guantes dorados",i:"🥇",d:"Clics x2",c:3},
+ {id:"p6",n:"Auto-clicker",i:"🤖",d:"2 clics automáticos por segundo",c:6},
+ {id:"p2",n:"Contabilidad",i:"📒",d:"Ingresos de negocios x1,5",c:5},
+ {id:"p5",n:"Inversor paciente",i:"⏳",d:"Ganancias sin conexión al 100% (base 50%)",c:8},
+ {id:"p4",n:"Dedos de acero",i:"🦾",d:"Clics x3",c:10},
+ {id:"p3",n:"Marketing global",i:"📣",d:"Todos los ingresos x2",c:15}];
+const ACH=[
+ ["Primer toque","Haz 1 clic",()=>S.clicks>=1,1],
+ ["Dedo ágil","Haz 100 clics",()=>S.clicks>=100,1],
+ ["Mano incansable","Haz 1.000 clics",()=>S.clicks>=1e3,2],
+ ["Dedos de fuego","Haz 10.000 clics",()=>S.clicks>=1e4,4],
+ ["Ahorrador","Gana 1K en total",()=>S.total>=1e3,1],
+ ["Millonario","Gana 1M en total",()=>S.total>=1e6,2],
+ ["Billonario","Gana 1B en total",()=>S.total>=1e9,3],
+ ["Magnate","Gana 1T en total",()=>S.total>=1e12,5],
+ ["Emprendedor","Compra tu primer negocio",()=>S.bz.some(x=>x>0),1],
+ ["Diversificado","Ten los 8 negocios",()=>S.bz.every(x=>x>0),3],
+ ["Experto","Ten 25 unidades de un negocio",()=>Math.max(...S.bz)>=25,2],
+ ["Ingresos pasivos","Produce 100/s",()=>S.maxCps>=100,2],
+ ["Máquina de dinero","Produce 1M/s",()=>S.maxCps>=1e6,5],
+ ["Alto ejecutivo","Alcanza el nivel 10",()=>levelOf(S.total)>=10,2],
+ ["Renacido","Haz tu primer prestigio",()=>S.prest>=1,3]];
+
+/* ===== Estado ===== */
+const def=()=>({coins:0,run:0,total:0,clicks:0,cu:[0,0,0],bz:Array(8).fill(0),perm:{},ach:{},claimed:{},gems:0,stars:0,prest:0,time:0,maxCps:0,rewLvl:1,last:Date.now(),snd:false,auto:false,help:false});
+let S=def(), Q=1, saveErr=false;
+function load(){
+  try{
+    const raw=localStorage.getItem(KEY); if(!raw)return;
+    const o=JSON.parse(raw), d=def();
+    for(const k in d){
+      if(!(k in o))continue;
+      if(typeof d[k]==="number"){if(isFinite(o[k])&&o[k]>=0)d[k]=o[k]}
+      else if(typeof d[k]==="boolean")d[k]=!!o[k];
+      else if(Array.isArray(d[k])){if(Array.isArray(o[k]))d[k]=d[k].map((_,i)=>isFinite(o[k][i])&&o[k][i]>=0?Math.floor(o[k][i]):0)}
+      else if(o[k]&&typeof o[k]==="object")d[k]=o[k];
+    }
+    S=d;
+  }catch(e){S=def();toast("⚠️ Guardado dañado: se inició una partida nueva.")}
+}
+function save(){
+  try{S.last=Date.now();localStorage.setItem(KEY,JSON.stringify(S));saveErr=false}
+  catch(e){if(!saveErr)toast("⚠️ No se pudo guardar (almacenamiento bloqueado o lleno).");saveErr=true}
+}
+
+/* ===== Cálculos ===== */
+const P=id=>!!S.perm[id];
+const levelOf=t=>1+Math.floor(Math.pow(Math.log10(t+1),1.6));
+function mults(){let g=(1+0.15*S.stars)*(1+0.02*(levelOf(S.total)-1));if(P("p2"))g*=1.5;if(P("p3"))g*=2;return g}
+function clickPow(){let b=1;CU.forEach((u,i)=>b+=u.a*S.cu[i]);if(P("p1"))b*=2;if(P("p4"))b*=3;return b*(1+0.15*S.stars)*(1+0.02*(levelOf(S.total)-1))*(P("p3")?2:1)}
+function bizPer(i){return BIZ[i].p*Math.pow(2,Math.floor(S.bz[i]/25))*mults()}
+function cps(){let s=0;BIZ.forEach((b,i)=>s+=S.bz[i]*bizPer(i));if(P("p6"))s+=2*clickPow();return s}
+const bizCost=(i,k)=>BIZ[i].c*Math.pow(R,S.bz[i])*(Math.pow(R,k)-1)/(R-1);
+function maxK(i){
+  const c0=BIZ[i].c*Math.pow(R,S.bz[i]);
+  let k=Math.floor(Math.log(S.coins*(R-1)/c0+1)/Math.log(R));
+  if(!isFinite(k)||k<0)k=0;
+  while(k>0&&bizCost(i,k)>S.coins)k--;
+  return k;
+}
+function plan(i){let k=Q==="max"?Math.max(1,maxK(i)):Q;return [k,bizCost(i,k)]}
+const cuCost=i=>CU[i].c*Math.pow(CU[i].r,S.cu[i]);
+function earn(x){S.coins+=x;S.run+=x;S.total+=x}
+const starGain=()=>Math.floor(Math.sqrt(S.run/1e6));
+
+/* ===== Interfaz: utilidades ===== */
+function toast(m){
+  const t=$("#toasts");while(t.children.length>3)t.firstChild.remove();
+  const d=document.createElement("div");d.className="toast";d.textContent=m;t.append(d);setTimeout(()=>d.remove(),3200);
+}
+function modal(title,html,btns){
+  $("#box").innerHTML="<h2>"+title+"</h2>"+html+'<div class="row" id="mb"></div>';
+  btns.forEach(b=>{const e=document.createElement("button");e.className="buy "+(b.c||"");e.textContent=b.t;
+    e.onclick=()=>{$("#modal").classList.remove("on");b.f&&b.f()};$("#mb").append(e)});
+  $("#modal").classList.add("on");
+}
+function flash(el){el.classList.remove("flash");void el.offsetWidth;el.classList.add("flash")}
+function floatTxt(x,y,txt,col){
+  const f=$("#fx");while(f.children.length>30)f.firstChild.remove();
+  const d=document.createElement("div");d.className="float";d.textContent=txt;
+  d.style.left=x+"px";d.style.top=y+"px";if(col)d.style.color=col;
+  d.style.fontSize=(1+Math.random()*.5)+"rem";
+  d.addEventListener("animationend",()=>d.remove());f.append(d);
+}
+let AC=null;
+function beep(f,d,t,v){
+  if(!S.snd)return;
+  try{
+    AC=AC||new(window.AudioContext||window.webkitAudioContext)();
+    const o=AC.createOscillator(),g=AC.createGain();o.type=t||"sine";o.frequency.value=f;
+    g.gain.setValueAtTime(v||.06,AC.currentTime);g.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+d);
+    o.connect(g).connect(AC.destination);o.start();o.stop(AC.currentTime+d);
+  }catch(e){}
+}
+const sBuy=()=>{beep(440,.1,"triangle");setTimeout(()=>beep(660,.15,"triangle"),80)};
+const sAch=()=>[523,659,784,1046].forEach((f,i)=>setTimeout(()=>beep(f,.2,"triangle",.07),i*90));
+
+/* ===== Construcción de vistas ===== */
+const TABS=[["biz","🏢 Negocios"],["up","👆 Mejoras"],["ach","🏆 Logros"],["shop","💎 Tienda"],["pre","⭐ Prestigio"],["st","📊 Datos"],["help","❓ Ayuda"]];
+const V={},bizEl=[],cuEl=[],achEl=[],permEl=[];
+function card(icon,name,btnCls){
+  const el=document.createElement("div");el.className="card";
+  el.innerHTML='<div class="ic">'+icon+'</div><div class="inf"><b>'+name+'</b><span class="lv"></span><small class="d1"></small><small class="d2"></small></div><button class="buy '+(btnCls||"")+'"></button>';
+  return {el,lv:el.querySelector(".lv"),d1:el.querySelector(".d1"),d2:el.querySelector(".d2"),btn:el.querySelector("button")};
+}
+function build(){
+  const tabs=$("#tabs"),views=$("#views");
+  TABS.forEach(([id,label],n)=>{
+    const b=document.createElement("button");b.textContent=label;b.setAttribute("role","tab");
+    b.onclick=()=>showTab(id);b.dataset.t=id;tabs.append(b);
+    const v=document.createElement("div");v.className="view";v.id="v-"+id;views.append(v);V[id]=v;
+  });
+  // Negocios
+  const top=document.createElement("div");top.className="row";
+  ["1","10","100","max"].forEach(q=>{const b=document.createElement("button");b.textContent=q==="max"?"Máx":"x"+q;b.dataset.q=q;
+    b.onclick=()=>{Q=q==="max"?"max":+q;top.querySelectorAll("[data-q]").forEach(x=>x.classList.toggle("on",x===b));update()};
+    if(q==="1")b.classList.add("on");top.append(b)});
+  const au=document.createElement("button");au.id="bAuto";au.onclick=()=>{S.auto=!S.auto;update()};top.append(au);
+  V.biz.append(top);
+  const note=document.createElement("small");note.style.color="var(--mut)";
+  note.textContent="Cada 25 unidades de un negocio duplican su producción. Auto-compra: adquiere solo el negocio más rentable que puedas pagar.";
+  V.biz.append(note);
+  BIZ.forEach((b,i)=>{const c=card(b.i,b.n);c.btn.onclick=()=>buyBiz(i);V.biz.append(c.el);bizEl.push(c)});
+  CU.forEach((u,i)=>{const c=card(u.i,u.n);c.btn.onclick=()=>buyCU(i);V.up.append(c.el);cuEl.push(c)});
+  ACH.forEach((a,i)=>{const c=card("🏆",a[0],"gem");c.btn.onclick=()=>claim(i);V.ach.append(c.el);achEl.push(c)});
+  PERM.forEach(p=>{const c=card(p.i,p.n,"gem");c.btn.onclick=()=>buyPerm(p);V.shop.append(c.el);permEl.push(c)});
+  V.shop.prepend(Object.assign(document.createElement("small"),{textContent:"Mejoras permanentes: se conservan al hacer prestigio. Gana 💎 con logros y subiendo de nivel.",style:"color:var(--mut)"}));
+  V.pre.innerHTML='<div class="big" id="pStars"></div><p id="pInfo"></p><button class="buy gold" id="bPre"></button><p class="hint">Al hacer prestigio pierdes monedas, mejoras de clic y negocios. Conservas estrellas, 💎, logros, tienda y estadísticas. Cada ⭐ da +15% a todo.</p>';
+  $("#bPre").onclick=prestige;
+  V.st.innerHTML='<div id="stBox"></div>';
+  V.help.innerHTML='<ul><li>🪙 Toca la moneda para ganar dinero.</li><li>👆 En <b>Mejoras</b> aumenta lo que ganas por toque.</li><li>🏢 Los <b>Negocios</b> producen monedas solos, incluso con la página cerrada (50% sin conexión).</li><li>🏆 Reclama <b>Logros</b> para conseguir 💎.</li><li>💎 La <b>Tienda</b> ofrece mejoras permanentes.</li><li>⭐ El <b>Prestigio</b> reinicia tu imperio a cambio de un multiplicador permanente.</li><li>💾 Se guarda solo cada pocos segundos en este navegador.</li></ul>';
+  showTab("biz");
+}
+function showTab(id){
+  document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("on",b.dataset.t===id));
+  for(const k in V)V[k].classList.toggle("on",k===id);
+}
+
+/* ===== Acciones ===== */
+function buyBiz(i){
+  const [k,c]=plan(i);if(c>S.coins||k<1)return;
+  S.coins-=c;S.bz[i]+=k;flash(bizEl[i].el);sBuy();update();
+}
+function buyCU(i){
+  const c=cuCost(i);if(c>S.coins)return;
+  S.coins-=c;S.cu[i]++;flash(cuEl[i].el);sBuy();update();
+}
+function buyPerm(p){
+  if(P(p.id)||S.gems<p.c)return;
+  S.gems-=p.c;S.perm[p.id]=true;flash(permEl[PERM.indexOf(p)].el);sBuy();toast("✨ "+p.n+" desbloqueado");update();
+}
+function claim(i){
+  if(!S.ach[i]||S.claimed[i])return;
+  S.claimed[i]=true;S.gems+=ACH[i][3];sAch();flash(achEl[i].el);update();
+}
+function autoBuy(){
+  for(let n=0;n<5;n++){
+    let best=-1,bs=Infinity;
+    BIZ.forEach((b,i)=>{const c=bizCost(i,1);if(c<=S.coins){const s=c/(b.p*Math.pow(2,Math.floor((S.bz[i]+1)/25)));if(s<bs){bs=s;best=i}}});
+    if(best<0)return;
+    S.coins-=bizCost(best,1);S.bz[best]++;
+  }
+}
+function prestige(){
+  const g=starGain();if(g<1)return;
+  modal("⭐ Prestigio","<p>Ganarás <b>"+g+" ⭐</b> (+"+g*15+"% a todo, permanente). Perderás monedas, mejoras de clic y negocios.</p>",
+   [{t:"Cancelar",c:"gem"},{t:"Hacer prestigio",c:"gold",f:()=>{
+     S.stars+=g;S.prest++;S.coins=0;S.run=0;S.cu=[0,0,0];S.bz=Array(8).fill(0);save();update();showTab("biz");toast("⭐ ¡Imperio renacido! +"+g+" estrellas");sAch();
+   }}]);
+}
+function resetGame(){
+  modal("🗑️ Reiniciar partida","<p>Se borrará <b>todo</b> tu progreso, incluido el prestigio. No se puede deshacer.</p>",
+   [{t:"Cancelar",c:"gem"},{t:"Borrar todo",c:"gold",f:()=>{
+     try{localStorage.removeItem(KEY)}catch(e){}
+     S=def();S.help=true;save();update();showTab("biz");toast("Partida reiniciada");
+   }}]);
+}
+$("#coin").addEventListener("click",e=>{
+  const r=e.currentTarget.getBoundingClientRect(),p=clickPow();
+  const x=e.detail?e.clientX:r.left+r.width/2,y=e.detail?e.clientY:r.top+r.height/3;
+  earn(p);S.clicks++;
+  floatTxt(x+(Math.random()*40-20),y-10,"+"+fmt(p)+" 🪙");
+  const c=e.currentTarget;c.classList.add("hit");setTimeout(()=>c.classList.remove("hit"),70);
+  beep(500+Math.random()*200,.07,"square",.03);
+});
+$("#bSnd").onclick=()=>{S.snd=!S.snd;update();beep(660,.12,"triangle")};
+$("#bReset").onclick=resetGame;
+
+/* ===== Actualización de la interfaz ===== */
+function update(){
+  const g=mults(),c=cps(),L=levelOf(S.total);
+  if(c>S.maxCps)S.maxCps=c;
+  $("#coins").textContent=fmt(Math.floor(S.coins));
+  $("#cps").textContent="+"+fmt(c)+"/s";
+  $("#gems").textContent="💎 "+S.gems;
+  $("#lvl").textContent="Nivel "+L;
+  const lg=Math.log10(S.total+1),a=Math.pow(L-1,1/1.6),b=Math.pow(L,1/1.6);
+  $("#lvlbar").style.width=Math.max(0,Math.min(100,(lg-a)/(b-a)*100))+"%";
+  $("#cpc").textContent="+"+fmt(clickPow())+" por toque";
+  $("#bSnd").textContent=S.snd?"🔊":"🔇";
+  const au=$("#bAuto");au.textContent=S.auto?"🤖 Auto-compra: ON":"🤖 Auto-compra: OFF";au.classList.toggle("on",S.auto);
+  BIZ.forEach((bz,i)=>{
+    const e=bizEl[i],n=S.bz[i],[k,cost]=plan(i);
+    e.lv.textContent="Nv. "+n;
+    e.d1.textContent="Cada uno: "+fmt(bizPer(i))+"/s · Total: "+fmt(bizPer(i)*n)+"/s";
+    e.d2.textContent="Siguiente x2 en "+(25-n%25)+" unidades";
+    e.btn.textContent="Comprar x"+k+" · "+fmt(cost)+" 🪙";e.btn.disabled=cost>S.coins;
+  });
+  CU.forEach((u,i)=>{
+    const e=cuEl[i],cost=cuCost(i);
+    e.lv.textContent="Nv. "+S.cu[i];
+    e.d1.textContent="+"+fmt(u.a)+" monedas base por toque";
+    e.d2.textContent="Aportan: +"+fmt(u.a*S.cu[i])+" en total";
+    e.btn.textContent=fmt(cost)+" 🪙";e.btn.disabled=cost>S.coins;
+  });
+  ACH.forEach((a,i)=>{
+    const e=achEl[i],u=!!S.ach[i],cl=!!S.claimed[i];
+    e.el.classList.toggle("done",u);
+    e.d1.textContent=a[1];e.d2.textContent=u?"¡Conseguido!":"Bloqueado";
+    e.btn.textContent=cl?"Reclamado ✔":"Reclamar +"+a[3]+" 💎";e.btn.disabled=!u||cl;
+    e.el.querySelector(".ic").textContent=u?"🏆":"🔒";
+  });
+  PERM.forEach((p,i)=>{
+    const e=permEl[i],o=P(p.id);
+    e.d1.textContent=p.d;e.d2.textContent=o?"Activa":"";
+    e.btn.textContent=o?"Comprado ✔":p.c+" 💎";e.btn.disabled=o||S.gems<p.c;
+  });
+  const gn=starGain();
+  $("#pStars").textContent="⭐ "+S.stars+" (+"+Math.round(S.stars*15)+"%)";
+  $("#pInfo").textContent=gn>=1?"Si haces prestigio ahora ganarás "+gn+" ⭐.":"Necesitas ganar 1M en esta partida para conseguir tu primera estrella (llevas "+fmt(S.run)+").";
+  $("#bPre").textContent="Hacer prestigio";$("#bPre").disabled=gn<1;
+  const rows=[["Dinero ganado (total)",fmt(S.total)],["Dinero de esta partida",fmt(S.run)],["Clics",fmt(S.clicks)],["Producción máxima",fmt(S.maxCps)+"/s"],
+    ["Negocios comprados",S.bz.reduce((x,y)=>x+y,0)],["Prestigios",S.prest],["Logros",Object.keys(S.ach).length+"/"+ACH.length],
+    ["Multiplicador global","x"+g.toFixed(2)],["Tiempo jugado",fmtTime(S.time)]];
+  $("#stBox").innerHTML=rows.map(r=>'<div class="stat"><span>'+r[0]+"</span><b>"+r[1]+"</b></div>").join("");
+}
+
+/* ===== Bucle del juego ===== */
+let lastT=Date.now(),tick=0;
+function loop(){
+  const now=Date.now();let dt=(now-lastT)/1000;lastT=now;
+  if(dt<0)dt=0;if(dt>3600)dt=3600;
+  S.time+=dt;
+  const c=cps();if(c>0)earn(c*dt);
+  if(S.auto)autoBuy();
+  ACH.forEach((a,i)=>{if(!S.ach[i]&&a[2]()){S.ach[i]=true;toast("🏆 Logro: "+a[0]);sAch()}});
+  const L=levelOf(S.total);
+  if(L>S.rewLvl){
+    const gm=Math.floor(L/5)-Math.floor(S.rewLvl/5);S.rewLvl=L;
+    toast("⬆️ ¡Nivel "+L+"!"+(gm>0?" +"+gm+" 💎":""));if(gm>0)S.gems+=gm;sAch();
+  }
+  update();
+  if(++tick%50===0)save();
+}
+
+/* ===== Inicio ===== */
+load();build();
+(function offline(){
+  const dt=(Date.now()-S.last)/1000;
+  if(dt>10){
+    const gain=cps()*Math.min(dt,28800)*(P("p5")?1:.5);
+    if(gain>0){earn(gain);toast("💤 Sin conexión ganaste "+fmt(gain)+" 🪙 en "+fmtTime(dt))}
+  }
+})();
+update();
+setInterval(loop,100);
+document.addEventListener("visibilitychange",()=>{if(document.hidden)save()});
+window.addEventListener("pagehide",save);
+if(!S.help){S.help=true;modal("💼 ¡Bienvenido a Clicker Tycoon!","<p>Empiezas sin un euro. Toca la moneda 🪙, compra mejoras de clic y abre negocios que ganen dinero por ti. Cuando seas rico, haz prestigio ⭐ para volver a empezar más fuerte.</p><p>Tienes más consejos en la pestaña ❓ Ayuda.</p>",[{t:"¡A jugar!",c:"gold"}])}
+</script>
+</body>
+</html>
